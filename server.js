@@ -83,5 +83,5 @@ app.post("/api/favorites",(req,res)=>{
  res.json({saved:!exists});
 });
 
-app.get("*",(req,res)=>res.sendFile(path.join(__dirname,"public","index.html")));
+app.gapp.get("*",(req,res)=>res.sendFile(path.join(__dirname,"index.html")));
 app.listen(process.env.PORT||3000,()=>console.log("SaveStickersFree running"));
