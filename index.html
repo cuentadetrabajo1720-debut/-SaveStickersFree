@@ -1,0 +1,38 @@
+
+<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SaveStickersFree.com</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial;background:#f6f7fb;color:#222}header{height:64px;background:#fff;border-bottom:1px solid #ddd;display:flex;align-items:center;padding:0 18px;gap:15px;position:sticky;top:0;z-index:5}.logo{font-weight:800;font-size:20px;flex:1}.logo b{color:#5b5be7}button{border:0;border-radius:8px;padding:10px 14px;cursor:pointer}.primary{background:#5b5be7;color:#fff}.menu{font-size:25px;background:none}.hero{text-align:center;padding:35px 15px;background:linear-gradient(135deg,#ececff,#fff)}h1{margin:0 0 8px}.search{max-width:600px;margin:18px auto}.search input{width:100%;padding:13px;border:1px solid #ccc;border-radius:9px}.container{max-width:1050px;margin:auto;padding:22px 16px}.cats{display:flex;gap:8px;overflow:auto}.cats button{background:#fff;border:1px solid #ddd;white-space:nowrap}.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:14px}.card{background:#fff;border:1px solid #ddd;border-radius:12px;padding:14px;text-align:center;margin-top:15px}.emoji{font-size:60px}.save{background:#eee}.save.on{background:#5b5be7;color:white}.modal{display:none;position:fixed;inset:0;background:#0008;align-items:center;justify-content:center;padding:18px;z-index:20}.box{background:white;border-radius:14px;padding:22px;max-width:430px;width:100%}.box input{display:block;width:100%;padding:12px;margin:8px 0;border:1px solid #ccc;border-radius:8px}.close{float:right;background:#eee}.tabs{display:flex;gap:5px;margin-bottom:10px}.msg{min-height:20px;color:#c33}
+</style></head><body>
+<header><div class="logo">SaveStickers<b>Free</b>.com</div><span id="user"></span><button class="menu" onclick="toggleMenu()">☰</button></header>
+<div id="menu" style="display:none;position:fixed;right:12px;top:60px;background:#fff;border:1px solid #ddd;border-radius:10px;padding:8px;z-index:10">
+<button onclick="openAuth('login')">👤 Cuenta</button><br><button onclick="showTutorial()">📖 Tutorial</button><br><button onclick="showFavorites()">⭐ Favoritos</button>
+</div>
+<section class="hero"><h1>🧩 SaveStickersFree.com</h1><p>Busca, guarda y descubre stickers gratis.</p><div class="search"><input id="q" placeholder="Buscar stickers..." oninput="render()"></div></section>
+<main class="container"><div class="cats">
+<button onclick="setCat('Todos')">Todos</button><button onclick="setCat('Memes')">😂 Memes</button><button onclick="setCat('Animales')">🐱 Animales</button><button onclick="setCat('Gaming')">🎮 Gaming</button><button onclick="setCat('Amor')">❤️ Amor</button><button onclick="setCat('Emojis')">😎 Emojis</button>
+</div><h2 id="title">🔥 Stickers populares</h2><div class="grid" id="grid"></div></main>
+
+<div class="modal" id="auth"><div class="box"><button class="close" onclick="closeM('auth')">✕</button><div class="tabs"><button onclick="openAuth('login')">Iniciar sesión</button><button onclick="openAuth('register')">Crear cuenta</button></div>
+<div id="authForm"></div><p class="msg" id="msg"></p></div></div>
+<div class="modal" id="tutorial"><div class="box"><button class="close" onclick="closeM('tutorial')">✕</button><h2>📖 Tutorial</h2><div id="step"></div><button onclick="prev()">←</button><button class="primary" onclick="next()">Siguiente →</button></div></div>
+
+<script>
+let data=[],cat="Todos",fav=new Set(),step=1;
+const $=x=>document.getElementById(x);
+async function init(){data=await fetch("/api/stickers").then(r=>r.json());await me();render()}
+async function me(){let x=await fetch("/api/me").then(r=>r.json());$("user").innerHTML=x.loggedIn?`Hola, ${x.username} <button onclick="logout()">Salir</button>`:"";if(x.loggedIn)fav=new Set(await fetch("/api/favorites").then(r=>r.json()));}
+function setCat(x){cat=x;render()}
+function render(){let q=$("q").value.toLowerCase();$("grid").innerHTML=data.filter(s=>(cat=="Todos"||s[2]==cat)&&(!q||s[1].toLowerCase().includes(q)||s[0].includes(q))).map(s=>`<div class="card"><div class="emoji">${s[0]}</div><b>${s[1]}</b><br><small>${s[2]}</small><br><button class="save ${fav.has(s[0])?'on':''}" onclick="favorite('${s[0]}',this)">⭐ ${fav.has(s[0])?'Guardado':'Guardar'}</button></div>`).join("")}
+async function favorite(s,b){let r=await fetch("/api/favorites",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({sticker:s})});let x=await r.json();if(r.status==401)return openAuth("login");x.saved?fav.add(s):fav.delete(s);render()}
+function toggleMenu(){let m=$("menu");m.style.display=m.style.display=="block"?"none":"block"}
+function openAuth(type){$("auth").style.display="flex";$("msg").textContent="";$("authForm").innerHTML=type=="login"?`<h2>Iniciar sesión</h2><input id="email" placeholder="Correo electrónico" type="email"><input id="pass" placeholder="Contraseña" type="password"><button class="primary" onclick="login()">Entrar</button>`:`<h2>Crear cuenta</h2><input id="name" placeholder="Nombre de usuario"><input id="email" placeholder="Correo electrónico" type="email"><input id="pass" placeholder="Contraseña (8+ caracteres)" type="password"><button class="primary" onclick="register()">Crear cuenta</button>`}
+async function login(){let r=await fetch("/api/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:$("email").value,password:$("pass").value})});let x=await r.json();if(!r.ok)return $("msg").textContent=x.error;closeM("auth");await me();render()}
+async function register(){let r=await fetch("/api/register",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username:$("name").value,email:$("email").value,password:$("pass").value})});let x=await r.json();if(!r.ok)return $("msg").textContent=x.error;closeM("auth");await me();render()}
+async function logout(){await fetch("/api/logout",{method:"POST"});fav.clear();await me();render()}
+function closeM(id){$(id).style.display="none"}
+function showTutorial(){closeM("auth");$("tutorial").style.display="flex";step=1;drawStep()}
+function drawStep(){let a=[["1️⃣","Busca","Busca el sticker que quieres."],["2️⃣","Abre","Toca el sticker para verlo."],["3️⃣","Guarda","Pulsa ⭐ Guardar. Debes tener una cuenta."],["4️⃣","Listo","Lo encontrarás en Favoritos."]][step-1];$("step").innerHTML=`<div style="font-size:65px">${a[0]}</div><h3>${a[1]}</h3><p>${a[2]}</p>`}
+function next(){if(step<4){step++;drawStep()}}function prev(){if(step>1){step--;drawStep()}}
+async function showFavorites(){let x=await fetch("/api/me").then(r=>r.json());if(!x.loggedIn)return openAuth("login");$("q").value="";cat="Todos";$("title").textContent="⭐ Mis favoritos";render();toggleMenu()}
+init();
+</script></body></html>
